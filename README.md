@@ -3,6 +3,8 @@ Puppet Hiera (v5) lookup function for AWS s3
 
 This will try to parse a found S3 object as YAML, but will fallback to a string. Optionally, you can specify a (replicated) bucket as a failover. A S3 NoSuchKey on the primary will return not_found, but S3 exceptions such as AccessDenied or connection errors will get retried on the failover.
 
+## TODO
+ - Include configuration to confine use (regex?), since S3 (external calls) are relatively expensive
 
 ## Hiera Configuration:
 
