@@ -28,37 +28,40 @@ Puppet::Functions.create_function(:s3_hiera_lookup_key) do
   def s3_hiera_lookup_key(key, options, context)
     return context.cached_value(key) if context.cache_has_key(key)
 
-    unless options.include?('s3_primary_bucket')
-      raise ArgumentError,
-        "'s3_primary_bucket': must be defined as an option"
+
+    if not options.include?('s3_primary_bucket')
+      raise ArgumentError, "'s3_primary_bucket': must be defined as an option"
     end
 
-    s3_primary_bucket = options['s3_primary_bucket']
+    if not options.include?('s3_primary_region')
+      raise ArgumentError, "'s3_primary_region': must be defined as an option"
+    end
 
-    # Primary region is optional, but it is better to specify it
-    s3_primary_region = options.include?('s3_primary_region') ? options['s3_primary_region'] : 'us-east-1'
+    if options.include?('s3_failover_bucket') and not options.include?('s3_failover_region')
+      raise ArgumentError, "'s3_failover_region': must be defined if s3_failover_bucket is"
+    end
 
     # Key Prefix is also optional
     s3_prefix = options.include?('s3_prefix') ? options['s3_prefix'] : ''
-
-    s3_failover_bucket = options.include?('s3_failover_bucket') ? options['s3_failover_bucket'] : nil
-    s3_failover_region = options.include?('s3_failover_region') ? options['s3_failover_region'] : 'us-east-1'
-
-    # Set key
     lookup_key = "#{s3_prefix}#{key}"
 
 
     begin
-      context.explain() { "Looking for s3://#{s3_primary_bucket}/#{lookup_key}"}
-      raw_data = retrieve_s3_key(s3_primary_bucket, lookup_key, s3_primary_region)
+      raw_data = retrieve_s3_key(options['s3_primary_bucket'],
+                                 lookup_key,
+                                 options['s3_primary_region'],
+                                 context)
     rescue Exception => e
       # Note: retrieve_s3_key catches NoSuchKey exception (returns nil)
-      if s3_failover_bucket
+      if options.include?('s3_failover_bucket')
         # Try failover bucket, without error handling
-        Puppet.warning("Primary bucket failure: #{e}. Trying Secondary")
-        raw_data = retrieve_s3_key(s3_failover_bucket, lookup_key, s3_failover_region)
+        Puppet.warning("#{e} [#{key}] - (Primary bucket failure). Trying Secondary")
+        raw_data = retrieve_s3_key(options['s3_failover_bucket'],
+                                   lookup_key,
+                                   options['s3_failover_region'],
+                                   context)
       else
-        raise e
+        raise Puppet::DataBinding::LookupError, "Error: s3_hiera_lookup_key while getting object: #{e.message}"
       end
     end
 
@@ -79,10 +82,11 @@ Puppet::Functions.create_function(:s3_hiera_lookup_key) do
   end
 
 
-  def retrieve_s3_key(bucket, key, aws_region)
+  def retrieve_s3_key(bucket, key, aws_region, context)
 
     s3 = Aws::S3::Client.new( region: aws_region )
 
+    context.explain() { "Looking for s3://#{bucket}/#{key}"}
     begin
       s3_object = s3.get_object(
         bucket: bucket,
