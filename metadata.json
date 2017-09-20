@@ -1,0 +1,15 @@
+{
+  "name": "puppet-hiera_s3",
+  "version": "0.1.0",
+  "author": "Isaac Wagner",
+  "summary": "Puppet Hiera (v5) lookup function for AWS S3",
+  "license": "Apache-2.0",
+  "source": "https://github.com/iwagnerclgx/puppet-hiera_s3",
+  "project_page": "https://github.com/iwagnerclgx/puppet-hiera_s3",
+  "issues_url": "https://github.com/iwagnerclgx/puppet-hiera_s3/issues",
+  "dependencies": [
+    {"name":"puppetlabs-stdlib","version_requirement":">= 1.0.0"}
+  ],
+  "data_provider": null
+}
+
