@@ -1,4 +1,4 @@
-# Puppet Hiera v5 function to use and AWS S3 backend.
+# Puppet Hiera v5 function to use an AWS S3 backend.
 # This will try to parse a found S3 object as yaml, but will fallback to a string
 #
 # Hiera Configuration options:
